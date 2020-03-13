@@ -1,7 +1,12 @@
+import _locale
 import os
 import json
 from py2neo import Graph, Node
 from tqdm import tqdm
+from bert_serving.client import BertClient
+import json
+bc = BertClient()
+_locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
 
 
 class MedicalGraph:
@@ -98,15 +103,54 @@ class MedicalGraph:
 
     def create_graphrels(self):
 
-        self.create_relationship('Bug', 'Symptom', self.rels_disease_symptom, 'has_symptom', '症状')
-        self.create_relationship('Bug', 'DiseaseTime', self.rels_disease_time, 'has_time', '发病')
-        self.create_relationship('Bug', 'People', self.rels_disease_people, 'belongs_to', '易感人群')
-        self.create_relationship('Bug', 'Food', self.rels_disease_food, 'result_from', '来源')
+        self.create_relationship(
+            'Bug', 'Symptom', self.rels_disease_symptom, 'has_symptom', '症状')
+        self.create_relationship('Bug', 'DiseaseTime',
+                                 self.rels_disease_time, 'has_time', '发病')
+        self.create_relationship(
+            'Bug', 'People', self.rels_disease_people, 'belongs_to', '易感人群')
+        self.create_relationship(
+            'Bug', 'Food', self.rels_disease_food, 'result_from', '来源')
         print(self.rels_disease_food)
+
+    def export_data(self):
+        f_food = open('dict/food.json', 'w')
+        f_symptom = open('dict/symptom.json', 'w')
+        f_bug = open('dict/disease.json', 'w')
+        f_people = open('dict/people.json', 'w')
+
+        d_food = {}
+        d_symptom ={}
+        d_bug = {}
+        d_people = {}
+
+        for wd in list(set(self.Food)):
+            d_food[wd]= bc.encode([wd]).tolist()
+        f_food.write(json.dumps(d_food,ensure_ascii=False))
+
+        for wd in list(set(self.Symptoms)):
+            d_symptom[wd]= bc.encode([wd]).tolist()
+        f_symptom.write(json.dumps(d_symptom,ensure_ascii=False))
+
+        for wd in list(set(self.Bugs)):
+            d_bug[wd]= bc.encode([wd]).tolist()
+        f_bug.write(json.dumps(d_bug,ensure_ascii=False))
+
+        for wd in list(set(self.People)):
+            d_people[wd]= bc.encode([wd]).tolist()
+        f_people.write(json.dumps(d_people,ensure_ascii=False))
+
+
+        f_food.close()
+        f_symptom.close()
+        f_bug.close()
+        f_people.close()
+
 
 if __name__ == '__main__':
     handler = MedicalGraph()
     handler.read_nodes()
-    print(len(handler.Bugs))
-    handler.create_graphnodes()
-    handler.create_graphrels()
+    # print(len(handler.Bugs))
+    # handler.create_graphnodes()
+    # handler.create_graphrels()
+    handler.export_data()
